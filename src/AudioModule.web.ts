@@ -339,7 +339,7 @@ export class AudioRecorderWeb
   private mediaRecorder: MediaRecorder | null = null;
   private mediaRecorderUptimeOfLastStartResume = 0;
   private mediaRecorderIsRecording = false;
-  private timeoutIds: ReturnType<typeof setTimeout>[] = [];
+  private timeoutIds: number[] = [];
 
   get isRecording(): boolean {
     return this.mediaRecorder?.state === 'recording';
