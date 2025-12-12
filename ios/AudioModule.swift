@@ -497,10 +497,12 @@ public class AudioModule: Module {
   }
 
   private func recordingDirectory() throws -> URL {
-    guard let cachesDir = appContext?.fileSystem?.cachesDirectory else {
+    guard let docsDir = appContext?.fileSystem?.documentDirectory else {
       throw Exceptions.AppContextLost()
     }
-    return URL(fileURLWithPath: cachesDir)
+    let recordingsDir = URL(fileURLWithPath: docsDir).appendingPathComponent("recordings")
+    try? FileManager.default.createDirectory(at: recordingsDir, withIntermediateDirectories: true, attributes: nil)
+    return recordingsDir
   }
 
   private func setIsAudioActive(_ isActive: Bool) throws {
