@@ -157,8 +157,8 @@ class AudioRecordingService : Service() {
     }
 
     val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-      .setContentTitle("Enregistrement suspendu")
-      .setContentText("Un appel a interrompu l'enregistrement. Appuyez pour reprendre.")
+      .setContentTitle("Enregistrement interrompu")
+      .setContentText("Votre enregistrement a été interrompu. Appuyez pour reprendre.")
       .setSmallIcon(android.R.drawable.ic_btn_speak_now)
       .setContentIntent(contentIntent)
       .setAutoCancel(true)

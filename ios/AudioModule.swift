@@ -412,8 +412,8 @@ public class AudioModule: Module {
       let bgTask = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
 
       let content = UNMutableNotificationContent()
-      content.title = "Enregistrement suspendu"
-      content.body = "Un appel ou une interruption a mis en pause votre enregistrement. Appuyez pour reprendre."
+      content.title = "Enregistrement interrompu"
+      content.body = "Votre enregistrement a été interrompu. Appuyez pour reprendre."
       content.sound = .default
       content.interruptionLevel = .timeSensitive
 
