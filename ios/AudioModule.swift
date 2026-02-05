@@ -1,4 +1,5 @@
 import ExpoModulesCore
+import UserNotifications
 
 public class AudioModule: Module {
   private var sessionIsActive = true
@@ -398,9 +399,29 @@ public class AudioModule: Module {
     }
 
 #if os(iOS)
+    var hadActiveRecorder = false
     registry.allRecorders.values.forEach { recorder in
       if recorder.isRecording {
+        hadActiveRecorder = true
         recorder.pauseRecording()
+      }
+    }
+
+    // Schedule local notification if a recorder was interrupted while app is backgrounded
+    if hadActiveRecorder && UIApplication.shared.applicationState != .active {
+      let bgTask = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
+
+      let content = UNMutableNotificationContent()
+      content.title = "Enregistrement suspendu"
+      content.body = "Un appel ou une interruption a mis en pause votre enregistrement. Appuyez pour reprendre."
+      content.sound = .default
+      content.interruptionLevel = .timeSensitive
+
+      let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false)
+      let request = UNNotificationRequest(identifier: "recording-interrupted", content: content, trigger: trigger)
+
+      UNUserNotificationCenter.current().add(request) { _ in
+        UIApplication.shared.endBackgroundTask(bgTask)
       }
     }
 #endif
@@ -452,6 +473,9 @@ public class AudioModule: Module {
         _ = try? recorder.startRecording()
       }
     }
+
+    // Cancel interruption notification if recorders successfully resumed
+    UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["recording-interrupted"])
 #endif
 
     interruptedPlayers.removeAll()

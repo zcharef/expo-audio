@@ -148,6 +148,33 @@ class AudioRecordingService : Service() {
     stopSelf()
   }
 
+  fun showInterruptionNotification() {
+    val contentIntent = packageManager.getLaunchIntentForPackage(packageName)?.let { appIntent ->
+      PendingIntent.getActivity(
+        this, 0, appIntent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+      )
+    }
+
+    val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+      .setContentTitle("Enregistrement suspendu")
+      .setContentText("Un appel a interrompu l'enregistrement. Appuyez pour reprendre.")
+      .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+      .setContentIntent(contentIntent)
+      .setAutoCancel(true)
+      .setPriority(NotificationCompat.PRIORITY_HIGH)
+      .setCategory(NotificationCompat.CATEGORY_ALARM)
+      .build()
+
+    val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    notificationManager.notify(INTERRUPTION_NOTIFICATION_ID, notification)
+  }
+
+  fun cancelInterruptionNotification() {
+    val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    notificationManager.cancel(INTERRUPTION_NOTIFICATION_ID)
+  }
+
   override fun onBind(intent: Intent?): IBinder {
     return binder
   }
@@ -161,6 +188,7 @@ class AudioRecordingService : Service() {
   companion object {
     private const val CHANNEL_ID = "expo_audio_recording_channel"
     private const val NOTIFICATION_ID = 2001
+    private const val INTERRUPTION_NOTIFICATION_ID = 2002
     private const val ACTION_START_RECORDING = "expo.modules.audio.action.START_RECORDING"
     private const val ACTION_STOP_RECORDING = "expo.modules.audio.action.STOP_RECORDING"
 

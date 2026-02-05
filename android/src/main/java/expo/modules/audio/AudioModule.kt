@@ -29,6 +29,7 @@ import androidx.media3.exoplayer.smoothstreaming.SsMediaSource
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import expo.modules.audio.service.AudioControlsService
+import expo.modules.audio.service.AudioRecordingService
 import expo.modules.interfaces.permissions.Permissions
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.exception.Exceptions
@@ -67,6 +68,10 @@ class AudioModule : Module() {
           players.values.forEach { player ->
             player.ref.pause()
           }
+          // Notify user if any recorder is active (notification-only, recorder behavior unchanged)
+          if (recorders.values.any { it.isRecording }) {
+            AudioRecordingService.getInstance()?.showInterruptionNotification()
+          }
         }
 
         AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
@@ -76,6 +81,10 @@ class AudioModule : Module() {
               player.isPaused = true
               player.ref.pause()
             }
+          }
+          // Notify user if any recorder is active (notification-only, recorder behavior unchanged)
+          if (recorders.values.any { it.isRecording }) {
+            AudioRecordingService.getInstance()?.showInterruptionNotification()
           }
         }
 
@@ -106,6 +115,8 @@ class AudioModule : Module() {
               player.ref.play()
             }
           }
+          // Dismiss interruption notification when audio focus is regained
+          AudioRecordingService.getInstance()?.cancelInterruptionNotification()
         }
       }
     }
