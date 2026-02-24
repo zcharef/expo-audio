@@ -219,6 +219,20 @@ export type RecorderState = {
   metering?: number;
   /** File URL where the recording will be saved, if available. */
   url: string | null;
+  /**
+   * The reason for the last audio session interruption (iOS only).
+   * Set when recording is interrupted by the system.
+   *
+   * Possible values:
+   * - `"default"` — Another session activated (phone call, Siri)
+   * - `"built_in_mic_muted"` — iPad Smart Folio closed over mic
+   * - `"route_disconnected"` — Bluetooth route disconnected (iOS 17+)
+   * - `"unknown_<N>"` — Unrecognized reason with raw enum value N
+   * - `null` — No interruption has occurred
+   *
+   * @platform ios
+   */
+  interruptionReason?: string | null;
 };
 
 /**

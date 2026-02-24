@@ -21,6 +21,10 @@ class AudioRecorder: SharedRef<AVAudioRecorder>, RecordingResultHandler {
   var allowsRecording = false
   weak var owningRegistry: AudioComponentRegistry?
 
+  // WHY: Surfaces the iOS AVAudioSession.InterruptionReason to JS so the app
+  // can distinguish phone-call interruptions from mic-mute, route-disconnect, etc.
+  var lastInterruptionReason: String?
+
   private var isPrepared: Bool {
     currentState == .prepared || currentState == .recording || currentState == .paused
   }
@@ -149,13 +153,18 @@ class AudioRecorder: SharedRef<AVAudioRecorder>, RecordingResultHandler {
     currentState = .paused
   }
 
+  func setInterruptionReason(_ reason: String?) {
+    lastInterruptionReason = reason
+  }
+
   func getRecordingStatus() -> [String: Any] {
     var result: [String: Any] = [
       "canRecord": isPrepared,
       "isRecording": currentState == .recording,
       "durationMillis": totalDuration,
       "mediaServicesDidReset": false,
-      "url": ref.url.absoluteString
+      "url": ref.url.absoluteString,
+      "interruptionReason": lastInterruptionReason as Any
     ]
 
     if ref.isMeteringEnabled {

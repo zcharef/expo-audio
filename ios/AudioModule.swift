@@ -366,7 +366,7 @@ public class AudioModule: Module {
 
     switch interruptionType {
     case .began:
-      handleInterruptionBegan()
+      handleInterruptionBegan(userInfo)
 
     case .ended:
       if let optionsRaw = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt {
@@ -381,7 +381,7 @@ public class AudioModule: Module {
     }
   }
 
-  private func handleInterruptionBegan() {
+  private func handleInterruptionBegan(_ userInfo: [AnyHashable: Any]?) {
     interruptedPlayers.removeAll()
     playerVolumes.removeAll()
 
@@ -399,10 +399,13 @@ public class AudioModule: Module {
     }
 
 #if os(iOS)
+    let reasonString = interruptionReasonString(from: userInfo)
+
     var hadActiveRecorder = false
     registry.allRecorders.values.forEach { recorder in
       if recorder.isRecording {
         hadActiveRecorder = true
+        recorder.setInterruptionReason(reasonString)
         recorder.pauseRecording()
       }
     }
@@ -425,6 +428,26 @@ public class AudioModule: Module {
       }
     }
 #endif
+  }
+
+  private func interruptionReasonString(from userInfo: [AnyHashable: Any]?) -> String? {
+    guard let userInfo,
+          let reasonRaw = userInfo[AVAudioSessionInterruptionReasonKey] as? UInt else {
+      return nil
+    }
+    switch AVAudioSession.InterruptionReason(rawValue: reasonRaw) {
+    case .default:
+      return "default"
+    case .builtInMicMuted:
+      return "built_in_mic_muted"
+    default:
+      if #available(iOS 17.0, *) {
+        if AVAudioSession.InterruptionReason(rawValue: reasonRaw) == .routeDisconnected {
+          return "route_disconnected"
+        }
+      }
+      return "unknown_\(reasonRaw)"
+    }
   }
 
   private func handleInterruptionEnded(with options: AVAudioSession.InterruptionOptions) {
