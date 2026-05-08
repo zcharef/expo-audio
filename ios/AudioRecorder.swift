@@ -16,6 +16,9 @@ class AudioRecorder: SharedRef<AVAudioRecorder>, RecordingResultHandler {
   private var recordingDelegate: RecordingDelegate?
   private var startTimestamp = 0
   private var totalRecordedDuration = 0
+  private var mediaServicesDidReset = false
+  private var currentOptions: RecordingOptions?
+  private var currentSessionOptions: AVAudioSession.CategoryOptions = []
   private var currentState: RecordingState = .idle
   private var recordingSession = AVAudioSession.sharedInstance()
   var allowsRecording = false
@@ -40,11 +43,13 @@ class AudioRecorder: SharedRef<AVAudioRecorder>, RecordingResultHandler {
   }
 
   var currentTime: Double {
-    ref.currentTime * 1000
+    let time = ref.currentTime * 1000
+    return time.isNaN ? 0 : time
   }
 
   var deviceCurrentTime: Int {
-    Int(ref.deviceCurrentTime * 1000)
+    let time = ref.deviceCurrentTime * 1000
+    return time.isNaN ? 0 : Int(time)
   }
 
   var uri: String {
@@ -73,7 +78,10 @@ class AudioRecorder: SharedRef<AVAudioRecorder>, RecordingResultHandler {
     if currentState == .recording {
       ref.stop()
     }
+    mediaServicesDidReset = false
     resetDurationTracking()
+    currentOptions = options
+    currentSessionOptions = sessionOptions
     let session = AVAudioSession.sharedInstance()
     do {
       try session.setCategory(.playAndRecord, mode: .default, options: sessionOptions)
@@ -157,12 +165,42 @@ class AudioRecorder: SharedRef<AVAudioRecorder>, RecordingResultHandler {
     lastInterruptionReason = reason
   }
 
+  func handleMediaServicesReset() {
+    mediaServicesDidReset = true
+    resetDurationTracking()
+
+    if let options = currentOptions {
+      do {
+        try prepare(options: options, sessionOptions: currentSessionOptions)
+        emit(event: recordingStatus, arguments: [
+          "id": id,
+          "isFinished": true,
+          "hasError": false,
+          "error": nil,
+          "url": nil,
+          "mediaServicesDidReset": true
+        ])
+        return
+      } catch {}
+    }
+
+    currentState = .error
+    emit(event: recordingStatus, arguments: [
+      "id": id,
+      "isFinished": true,
+      "hasError": true,
+      "error": "Media services were reset by the system",
+      "url": nil,
+      "mediaServicesDidReset": true
+    ])
+  }
+
   func getRecordingStatus() -> [String: Any] {
     var result: [String: Any] = [
       "canRecord": isPrepared,
       "isRecording": currentState == .recording,
       "durationMillis": totalDuration,
-      "mediaServicesDidReset": false,
+      "mediaServicesDidReset": mediaServicesDidReset,
       "url": ref.url.absoluteString,
       "interruptionReason": lastInterruptionReason as Any
     ]

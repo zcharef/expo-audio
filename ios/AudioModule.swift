@@ -355,6 +355,15 @@ public class AudioModule: Module {
       name: AVAudioSession.routeChangeNotification,
       object: session
     )
+
+    #if os(iOS)
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(handleMediaServicesReset(_:)),
+      name: AVAudioSession.mediaServicesWereResetNotification,
+      object: session
+    )
+    #endif
   }
 
   @objc private func handleAudioSessionInterruption(_ notification: Notification) {
@@ -475,6 +484,18 @@ public class AudioModule: Module {
       break
     }
   }
+
+  #if os(iOS)
+  @objc private func handleMediaServicesReset(_ notification: Notification) {
+    do {
+      try AVAudioSession.sharedInstance().setActive(true)
+    } catch {}
+
+    registry.allRecorders.values.forEach { recorder in
+      recorder.handleMediaServicesReset()
+    }
+  }
+  #endif
 
   private func resumeInterruptedPlayers() {
     registry.allPlayers.values.forEach { player in

@@ -99,7 +99,7 @@ class AudioRecorder(
     isRecording = true
     isPaused = false
 
-    if (useForegroundService && !isRegisteredWithService) {
+    if (useForegroundService && !isRegisteredWithService && hasNotificationPermissions()) {
       AudioRecordingService.startService(context, this)
       isRegisteredWithService = true
     }
@@ -144,6 +144,8 @@ class AudioRecorder(
   fun stopRecording(): Bundle {
     val url = currentFileUrl()
     var durationMillis: Long
+    var stopFailed = false
+    var stopError: String? = null
 
     if (useForegroundService && isRegisteredWithService) {
       AudioRecordingService.getInstance()?.unregisterRecorder(this)
@@ -153,6 +155,10 @@ class AudioRecorder(
     try {
       recorder?.stop()
       durationMillis = getAudioRecorderDurationMillis()
+    } catch (e: RuntimeException) {
+      stopFailed = true
+      stopError = e.localizedMessage ?: "Failed to stop recording"
+      durationMillis = getAudioRecorderDurationMillis()
     } finally {
       reset()
     }
@@ -161,19 +167,20 @@ class AudioRecorder(
       putBoolean("canRecord", false)
       putBoolean("isRecording", false)
       putLong("durationMillis", durationMillis)
-      url?.let { putString("url", it) }
+      if (!stopFailed) {
+        url?.let { putString("url", it) }
+      }
     }
 
-    // Emit completion event on the main thread
     appContext?.mainQueue?.launch {
       emit(
         RECORDING_STATUS_UPDATE,
         mapOf(
           "id" to id,
           "isFinished" to true,
-          "hasError" to false,
-          "error" to null,
-          "url" to url
+          "hasError" to stopFailed,
+          "error" to stopError,
+          "url" to if (stopFailed) null else url
         )
       )
     }
@@ -363,6 +370,13 @@ class AudioRecorder(
 
   private fun hasRecordingPermissions() =
     ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+
+  private fun hasNotificationPermissions(): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+      return true
+    }
+    return ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+  }
 
   fun getAvailableInputs(audioManager: AudioManager) =
     audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS).mapNotNull { deviceInfo ->
