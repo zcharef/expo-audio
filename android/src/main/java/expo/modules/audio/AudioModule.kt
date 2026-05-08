@@ -472,7 +472,7 @@ class AudioModule : Module() {
     Class(AudioRecorder::class) {
       Constructor { options: RecordingOptions ->
         val recorder = AudioRecorder(
-          appContext.throwingActivity.applicationContext,
+          appContext.reactContext ?: throw Exceptions.ReactContextLost(),
           appContext,
           options
         )
