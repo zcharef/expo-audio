@@ -166,12 +166,12 @@ class AudioRecorder: SharedRef<AVAudioRecorder>, RecordingResultHandler {
   }
 
   func handleMediaServicesReset() {
-    mediaServicesDidReset = true
     resetDurationTracking()
 
     if let options = currentOptions {
       do {
         try prepare(options: options, sessionOptions: currentSessionOptions)
+        mediaServicesDidReset = true
         emit(event: recordingStatus, arguments: [
           "id": id,
           "isFinished": true,
@@ -181,10 +181,23 @@ class AudioRecorder: SharedRef<AVAudioRecorder>, RecordingResultHandler {
           "mediaServicesDidReset": true
         ])
         return
-      } catch {}
+      } catch {
+        currentState = .error
+        mediaServicesDidReset = true
+        emit(event: recordingStatus, arguments: [
+          "id": id,
+          "isFinished": true,
+          "hasError": true,
+          "error": "Media services reset; re-prepare failed: \(error.localizedDescription)",
+          "url": nil,
+          "mediaServicesDidReset": true
+        ])
+        return
+      }
     }
 
     currentState = .error
+    mediaServicesDidReset = true
     emit(event: recordingStatus, arguments: [
       "id": id,
       "isFinished": true,

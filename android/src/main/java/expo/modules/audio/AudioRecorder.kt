@@ -163,6 +163,10 @@ class AudioRecorder(
       reset()
     }
 
+    if (stopFailed) {
+      filePath = null
+    }
+
     val status = Bundle().apply {
       putBoolean("canRecord", false)
       putBoolean("isRecording", false)
@@ -300,6 +304,7 @@ class AudioRecorder(
     emit(
       RECORDING_STATUS_UPDATE,
       mapOf(
+        "id" to id,
         "isFinished" to true,
         "hasError" to true,
         "error" to error,

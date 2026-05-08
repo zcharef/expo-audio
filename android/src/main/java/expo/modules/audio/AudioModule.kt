@@ -634,7 +634,8 @@ class AudioModule : Module() {
     runBlocking(appContext.mainQueue.coroutineContext) { block() }
 
   private fun checkRecordingPermission() {
-    val permission = ContextCompat.checkSelfPermission(appContext.throwingActivity.applicationContext, Manifest.permission.RECORD_AUDIO)
+    val ctx = appContext.reactContext ?: throw Exceptions.ReactContextLost()
+    val permission = ContextCompat.checkSelfPermission(ctx, Manifest.permission.RECORD_AUDIO)
     if (permission != PackageManager.PERMISSION_GRANTED) {
       throw AudioPermissionsException()
     }
